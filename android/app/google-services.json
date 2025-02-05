@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "32954830825",
+    "project_id": "ebustracker-7b654",
+    "storage_bucket": "ebustracker-7b654.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32954830825:android:8fed6eac6085ae930c4578",
+        "android_client_info": {
+          "package_name": "com.example.e_bus_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxBPJOa0NtAAB2PkpMoayYJ-4-WWi4J20"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:32954830825:android:ce9d6f1e327b79890c4578",
+        "android_client_info": {
+          "package_name": "com.example.smart_bus_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxBPJOa0NtAAB2PkpMoayYJ-4-WWi4J20"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
