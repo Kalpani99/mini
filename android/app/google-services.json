@@ -1,45 +1,36 @@
 {
   "project_info": {
-    "project_number": "32954830825",
-    "project_id": "ebustracker-7b654",
-    "storage_bucket": "ebustracker-7b654.firebasestorage.app"
+    "project_number": "259420242465",
+    "project_id": "trackbus-b7e28",
+    "storage_bucket": "trackbus-b7e28.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:32954830825:android:8fed6eac6085ae930c4578",
+        "mobilesdk_app_id": "1:259420242465:android:cde8fba15bd02b70395960",
         "android_client_info": {
           "package_name": "com.example.e_bus_tracker"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "259420242465-hf3qcueg18jtq90tc539u5gfd2294l45.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyCxBPJOa0NtAAB2PkpMoayYJ-4-WWi4J20"
+          "current_key": "AIzaSyBN3IWnGvt5zFkH6OVGVkz2oWYgyM_IbbQ"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:32954830825:android:ce9d6f1e327b79890c4578",
-        "android_client_info": {
-          "package_name": "com.example.smart_bus_tracker"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyCxBPJOa0NtAAB2PkpMoayYJ-4-WWi4J20"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "259420242465-hf3qcueg18jtq90tc539u5gfd2294l45.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
