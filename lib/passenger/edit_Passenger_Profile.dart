@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:track_bus/services/getuserauth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:track_bus/passenger/view_Passenger_Profile.dart';
 
 class PassengerProfileEditScreen extends StatefulWidget {
   const PassengerProfileEditScreen({Key? key}) : super(key: key);
@@ -16,28 +18,25 @@ class PassengerProfileEditScreen extends StatefulWidget {
 class _PassengerProfileEditScreenState
     extends State<PassengerProfileEditScreen> {
   late Future<UserDetailsP> futureData;
+  bool _isEditing = false;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  late UserDetailsP data;
+  UserDetailsP? data;
 
-  late File _selectedImage;
-
-  get imageXFile => null;
-
-  get as => null;
+  File? _selectedImage;
 
   @override
   void initState() {
-    futureData = AuthService().getUserProfile();
     super.initState();
+    futureData = AuthService().getUserProfile();
   }
 
   Future<void> _pickImage() async {
     final pickedFile =
-        await ImagePicker().getImage(source: ImageSource.gallery);
+        await ImagePicker().pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
         _selectedImage = File(pickedFile.path);
@@ -46,11 +45,31 @@ class _PassengerProfileEditScreenState
   }
 
   Future<void> _updateProfile() async {
+    if (data == null) return;
+
+    String? uploadedImageUrl = data!.profileImageURL;
+
+    // Upload image if selected
+    if (_selectedImage != null) {
+      try {
+        final storageRef = FirebaseStorage.instance.ref().child(
+            'user_profile_images/${DateTime.now().millisecondsSinceEpoch}.jpg');
+
+        final uploadTask = await storageRef.putFile(_selectedImage!);
+        uploadedImageUrl = await storageRef.getDownloadURL();
+      } catch (e) {
+        print("Image upload failed: $e");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Image upload failed")),
+        );
+        return;
+      }
+    }
+
+    // Update the profile with the new image URL (if any)
     await AuthService().updatePassengerProfile(
       UserDetailsP(
-        profileImageURL: _selectedImage != null
-            ? 'gs://e-bus-tracker-e6623.appspot.com/user_profile_images' // Replace 'URL' with the actual URL or upload to Firestore Storage
-            : data.profileImageURL,
+        profileImageURL: uploadedImageUrl,
         name: _nameController.text,
         homeAddress: _addressController.text,
         phoneNumber: _phoneController.text,
@@ -58,10 +77,12 @@ class _PassengerProfileEditScreenState
       ),
     );
 
-    // After updating, refresh the data and show it on the screen
-    setState(() {
-      futureData = AuthService().getUserProfile();
-    });
+    // Navigate to view profile screen
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => const ProfileTypeScreenP(),
+      ),
+    );
   }
 
   void _navigateToProfileScreen() {
@@ -79,126 +100,72 @@ class _PassengerProfileEditScreenState
         title: const Text("Edit Profile"),
         backgroundColor: Colors.black,
       ),
-      body: SingleChildScrollView(
-        child: FutureBuilder(
-          future: futureData,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const CircularProgressIndicator();
-            } else if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}');
-            } else if (!snapshot.hasData || snapshot.data == null) {
-              return const Text('No data available');
-            } else {
-              data = snapshot.data as UserDetailsP;
-              _nameController.text = data.name ?? '';
-              _addressController.text = data.homeAddress ?? '';
-              _phoneController.text = data.phoneNumber ?? '';
-              _emailController.text = data.email ?? '';
-              _selectedImage = File(data.profileImageURL ??
-                  'assets/images/placeholder_image.png');
+      body: FutureBuilder<UserDetailsP>(
+        future: futureData,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const CircularProgressIndicator();
+          } else if (snapshot.hasError) {
+            return Text('Error: ${snapshot.error}');
+          } else if (!snapshot.hasData || snapshot.data == null) {
+            return const Text('No data available');
+          } else {
+            data = snapshot.data;
+            _nameController.text = data!.name!;
+            _addressController.text = data!.homeAddress!;
+            _phoneController.text = data!.phoneNumber!;
+            _emailController.text = data!.email!;
 
-              return Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircleAvatar(
-                          backgroundColor: Colors.black,
-                          minRadius: 70.0,
-                          child: CircleAvatar(
-                            radius: 67.0,
-                            backgroundImage: imageXFile == null
-                                ? (data.profileImageURL != null &&
-                                        data.profileImageURL!.isNotEmpty
-                                    ? NetworkImage(data.profileImageURL!)
-                                    : const AssetImage(
-                                            'assets/images/placeholder_image.png')
-                                        as ImageProvider)
-                                : Image.file(imageXFile!).image,
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: _pickImage,
-                        ),
-                      ],
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: _pickImage,
+                    child: CircleAvatar(
+                      radius: 70,
+                      backgroundImage: _selectedImage == null
+                          ? NetworkImage(data!.profileImageURL ?? '')
+                          : FileImage(_selectedImage!) as ImageProvider,
                     ),
-                    const SizedBox(height: 20.0),
-                    TextField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Name',
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black),
-                        ),
-                      ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(labelText: "Name"),
+                  ),
+                  TextField(
+                    controller: _addressController,
+                    decoration: const InputDecoration(labelText: "Address"),
+                  ),
+                  TextField(
+                    controller: _phoneController,
+                    decoration: const InputDecoration(labelText: "Phone"),
+                  ),
+                  TextField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(labelText: "Email"),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _updateProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black, // Background color
+                      foregroundColor: Colors.white, // Text color
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
                     ),
-                    const SizedBox(height: 12.0),
-                    TextField(
-                      controller: _addressController,
-                      decoration: const InputDecoration(
-                        labelText: 'Home Address',
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black),
-                        ),
-                      ),
+                    child: const Text(
+                      "Save Changes",
+                      style: TextStyle(fontSize: 16),
                     ),
-                    const SizedBox(height: 12.0),
-                    TextField(
-                      controller: _phoneController,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone',
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12.0),
-                    TextField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        border: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.black),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20.0),
-                    Container(
-                      child: Align(
-                        alignment: Alignment.center,
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            await _updateProfile();
-                            _navigateToProfileScreen();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                          child: const Padding(
-                            padding: EdgeInsets.all(12.0),
-                            child: Text(
-                              "Save Changes",
-                              style: TextStyle(fontSize: 18),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }
-          },
-        ),
+                  ),
+                ],
+              ),
+            );
+          }
+        },
       ),
     );
   }

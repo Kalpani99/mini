@@ -32,7 +32,7 @@ class _BOStartTripState extends State<BOStartTrip> {
 
   final TextEditingController _destinationController = TextEditingController();
   final gm_places.GoogleMapsPlaces _places = gm_places.GoogleMapsPlaces(
-      apiKey: "AIzaSyCFwBrFsTMKu5IrsOOiMY-Nw8y_RNA_ZwE");
+      apiKey: "AIzaSyCsLwmDRs3JKm4WPugypZ5lDAGd4sV5PMU");
 
   @override
   void initState() {
@@ -89,6 +89,7 @@ class _BOStartTripState extends State<BOStartTrip> {
     if (value.isNotEmpty) {
       try {
         final places = await _places.searchByText(value);
+        print("Places results: ${places.results}");
         if (places.results.isNotEmpty) {
           final destinationLatLng = LatLng(
             places.results.first.geometry!.location.lat,

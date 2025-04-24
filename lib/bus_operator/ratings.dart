@@ -19,7 +19,12 @@ class _RatingScreenState extends State<RatingScreen> {
     return Scaffold(
       appBar: AppBar(
           backgroundColor: Colors.black,
-          title: const Text("Ratings"),
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: const Text("Ratings",
+              style: TextStyle(
+                fontSize: 24,
+                color: Colors.white,
+              )),
           actions: const []),
       body: ListView(
         shrinkWrap: true,

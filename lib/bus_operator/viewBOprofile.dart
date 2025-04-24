@@ -45,7 +45,12 @@ class _ProfileTypeScreenState extends State<ProfileTypeScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.black,
-        title: const Text("Profile"),
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text("Profile",
+            style: TextStyle(
+              fontSize: 24,
+              color: Colors.white,
+            )),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -81,7 +86,7 @@ class _ProfileTypeScreenState extends State<ProfileTypeScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 45.0,
+                      horizontal: 35.0,
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,

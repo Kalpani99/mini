@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "259420242465-71k55rrfb6v3ot4domqvkm85rspu6qb0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.e_bus_tracker",
+            "certificate_hash": "7e61d7ec73e0397f0d9ab9851a349ea579809e02"
+          }
+        },
+        {
           "client_id": "259420242465-hf3qcueg18jtq90tc539u5gfd2294l45.apps.googleusercontent.com",
           "client_type": 3
         }

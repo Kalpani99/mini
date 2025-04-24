@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class ButtonWidget extends StatelessWidget {
   final String title;
-  final Function onPress;
+  final void Function()? onPress;
   final Color color;
   const ButtonWidget(
       {Key? key,
@@ -14,10 +14,7 @@ class ButtonWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ElevatedButton(
-      onPressed: () {
-        // Navigate to Home page
-        onPress();
-      },
+      onPressed: onPress,
       style: ElevatedButton.styleFrom(
           backgroundColor: color,
           shape: RoundedRectangleBorder(

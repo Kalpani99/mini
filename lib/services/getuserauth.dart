@@ -28,14 +28,18 @@ class AuthService {
         .collection('busOperatorProfiles')
         .doc(_auth.currentUser!.uid)
         .get();
+
     print(userRef1.data());
 
+    if (!userRef1.exists || userRef1.data() == null) {
+      throw Exception("Bus operator profile not found");
+    }
+
     try {
-      final UserDetails ud =
-          UserDetails.fromJson(userRef1.data() as Map<String, dynamic>);
+      final UserDetails ud = UserDetails.fromJson(userRef1.data()!);
       return ud;
     } catch (e) {
-      print('error');
+      print('Error in parsing bus operator profile: $e');
       rethrow;
     }
   }
@@ -46,14 +50,18 @@ class AuthService {
         .collection('userProfiles')
         .doc(_auth.currentUser!.uid)
         .get();
+
     print(userRef2.data());
 
+    if (!userRef2.exists || userRef2.data() == null) {
+      throw Exception("Profile data not found");
+    }
+
     try {
-      final UserDetailsP ud =
-          UserDetailsP.fromJson(userRef2.data() as Map<String, dynamic>);
+      final UserDetailsP ud = UserDetailsP.fromJson(userRef2.data()!);
       return ud;
     } catch (e) {
-      print('error');
+      print('Error in parsing profile: $e');
       rethrow;
     }
   }
@@ -124,7 +132,7 @@ class AuthService {
         'email': updatedProfile.email,
       });
     } catch (e) {
-      print('Error updating bus operator profile: $e');
+      print('Error updating passenger profile: $e');
       rethrow;
     }
   }

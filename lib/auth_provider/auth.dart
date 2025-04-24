@@ -13,14 +13,18 @@ class AuthProvider extends ChangeNotifier {
 
   // signin
   void signInWithPhone(BuildContext context, String phoneNumber,
-      {required Null Function(dynamic verificationId) onCodeSent,
-      required Null Function(dynamic e) onError}) async {
+      {required Function(String verificationId) onCodeSent,
+      required Function(FirebaseAuthException e) onError}) async {
     try {
       await _firebaseAuth.verifyPhoneNumber(
           phoneNumber: phoneNumber,
+          timeout: const Duration(seconds: 60),
           verificationCompleted:
               (PhoneAuthCredential phoneAuthCredential) async {
             await _firebaseAuth.signInWithCredential(phoneAuthCredential);
+            /*ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Phone number automatically verified")),
+              );*/
           },
           verificationFailed: (error) {
             throw Exception(error.message);

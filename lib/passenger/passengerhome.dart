@@ -128,7 +128,10 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                   _getUserLocation(true, controller, locationName);
                   Navigator.pop(context);
                 },
-                child: const Text('Use Current Location'),
+                child: const Text(
+                  'Use Current Location',
+                  style: const TextStyle(color: Colors.white),
+                ),
               ),
               const SizedBox(height: 8),
               TextField(
@@ -177,7 +180,10 @@ class _PassengerHomeScreenState extends State<PassengerHomeScreen> {
                     _showErrorSnackBar("Please enter a location.");
                   }
                 },
-                child: const Text('OK'),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ],
           ),

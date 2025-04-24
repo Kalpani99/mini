@@ -152,7 +152,10 @@ class CardTodoListWidget extends StatelessWidget {
                                           Navigator.of(context)
                                               .pop(); // Close the dialog
                                         },
-                                        child: const Text('Cancel'),
+                                        child: const Text(
+                                          'Cancel',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
                                       ),
                                       TextButton(
                                         onPressed: () async {
@@ -176,7 +179,12 @@ class CardTodoListWidget extends StatelessWidget {
                                                 "Error deleting document: $error");
                                           }
                                         },
-                                        child: const Text('OK'),
+                                        child: const Text(
+                                          'OK',
+                                          style: TextStyle(
+                                              color:
+                                                  Color.fromARGB(255, 2, 2, 2)),
+                                        ),
                                       ),
                                     ],
                                   );

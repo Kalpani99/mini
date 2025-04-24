@@ -1,12 +1,13 @@
 import 'dart:io';
 
-import 'package:track_bus/phone.dart';
-import 'package:track_bus/widget/button_widget.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:track_bus/phone.dart';
+import 'package:track_bus/widget/button_widget.dart';
+import 'package:track_bus/bus_operator/bus_shedule.dart';
 
 class BusOperatorProfileScreen extends StatefulWidget {
   const BusOperatorProfileScreen({Key? key}) : super(key: key);
@@ -24,13 +25,11 @@ class _BusOperatorProfileScreenState extends State<BusOperatorProfileScreen> {
   TextEditingController busnoController = TextEditingController();
   TextEditingController busNameController = TextEditingController();
 
-  File? image; // Holds the selected image
+  File? image;
   bool isLoading = false;
 
   Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final pickedImage = await picker.pickImage(source: source);
-
+    final pickedImage = await ImagePicker().pickImage(source: source);
     if (pickedImage != null) {
       setState(() {
         image = File(pickedImage.path);
@@ -40,38 +39,28 @@ class _BusOperatorProfileScreenState extends State<BusOperatorProfileScreen> {
 
   Future<String?> _uploadImage(File image) async {
     try {
-      // Generate a unique filename for each uploaded image
-      final uniqueFileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      // Upload the image to Firebase Storage
-      final storageRef = FirebaseStorage.instance
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final ref = FirebaseStorage.instance
           .ref()
           .child('bus_operator_profile_images')
-          .child(uniqueFileName);
-      final uploadTask = storageRef.putFile(image);
-
-      // Get the download URL
-      final snapshot = await uploadTask;
-      final downloadURL = await snapshot.ref.getDownloadURL();
-
-      print('Image uploaded successfully. Download URL: $downloadURL');
-
-      return downloadURL;
+          .child(fileName);
+      await ref.putFile(image);
+      return await ref.getDownloadURL();
     } catch (e) {
-      print('Error uploading image: $e');
+      print('Image upload error: $e');
       return null;
     }
   }
 
   Future<void> _saveUserProfile() async {
-    final name = nameController.text;
-    final route = routeController.text;
-    final phoneNumber = phoneNoController.text;
-    final email = emailController.text;
-    final busNo = busnoController.text;
-    final busName = busNameController.text;
+    final name = nameController.text.trim();
+    final route = routeController.text.trim();
+    final phone = phoneNoController.text.trim();
+    final email = emailController.text.trim();
+    final busNo = busnoController.text.trim();
+    final busName = busNameController.text.trim();
 
-    if (!_validatePhoneNumber(phoneNumber)) {
+    if (!_validatePhoneNumber(phone)) {
       showSnackBar('Invalid phone number');
       return;
     }
@@ -81,35 +70,30 @@ class _BusOperatorProfileScreenState extends State<BusOperatorProfileScreen> {
       return;
     }
 
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
-      // Upload the image
-      String? downloadURL;
+      String? imageUrl;
       if (image != null) {
-        downloadURL = await _uploadImage(image!);
+        imageUrl = await _uploadImage(image!);
       }
 
-      final FirebaseAuth auth = FirebaseAuth.instance;
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) {
+        await FirebaseFirestore.instance
+            .collection('busOperatorProfiles')
+            .doc(uid)
+            .set({
+          'name': name,
+          'route': route,
+          'phoneNumber': phone,
+          'email': email,
+          'busNo': busNo,
+          'busName': busName,
+          'profileImageURL': imageUrl,
+        });
 
-      // Add the bus operator profile data to Firestore
-      final busOperatorProfileData = {
-        'name': name,
-        'route': route,
-        'phoneNumber': phoneNumber,
-        'email': email,
-        'busNo': busNo,
-        'busName': busName,
-        'profileImageURL': downloadURL,
-      };
-      await FirebaseFirestore.instance
-          .collection('busOperatorProfiles')
-          .doc(auth.currentUser!.uid)
-          .set(busOperatorProfileData);
-
-      setState(() {
+        // Clear
         nameController.clear();
         routeController.clear();
         phoneNoController.clear();
@@ -117,37 +101,28 @@ class _BusOperatorProfileScreenState extends State<BusOperatorProfileScreen> {
         busnoController.clear();
         busNameController.clear();
         image = null;
-        isLoading = false;
-      });
-    } catch (e) {
-      // Handle any errors that occur during saving
-      print('Error saving user profile: $e');
 
-      setState(() {
-        isLoading = false;
-      });
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const BusScheduleScreen()),
+        );
+      }
+    } catch (e) {
+      print('Save error: $e');
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
-  bool _validatePhoneNumber(String value) {
-    if (value.isEmpty) return false;
-    final phoneRegex = RegExp(r'^[0-9]{10}$');
-    return phoneRegex.hasMatch(value);
-  }
+  bool _validatePhoneNumber(String value) =>
+      RegExp(r'^[0-9]{10}$').hasMatch(value);
 
-  bool _validateEmail(String value) {
-    if (value.isEmpty) return false;
-    final emailRegex = RegExp(
-        r'^[\w-]+(\.[\w-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,})$');
-    return emailRegex.hasMatch(value);
-  }
+  bool _validateEmail(String value) =>
+      RegExp(r'^[\w-]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value);
 
   void showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -164,221 +139,116 @@ class _BusOperatorProfileScreenState extends State<BusOperatorProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
-          title: const Text(
-            'Create Bus Operator Profile',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.black,
-          centerTitle: true,
-          iconTheme: const IconThemeData(
-            color: Colors.white,
-          )),
-      body: Container(
-        padding: const EdgeInsets.only(top: 30),
+        title: const Text('Create Bus Operator Profile',
+            style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.black,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SafeArea(
         child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                child: Stack(
-                  children: [
-                    Align(
-                      alignment: Alignment.bottomCenter,
-                      child: GestureDetector(
+              GestureDetector(
+                onTap: () => showModalBottomSheet(
+                  context: context,
+                  builder: (_) => Wrap(
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.photo),
+                        title: const Text('Gallery'),
                         onTap: () {
-                          // Show image picker options
-                          showModalBottomSheet(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return SafeArea(
-                                child: Wrap(
-                                  children: [
-                                    ListTile(
-                                      leading: const Icon(Icons.photo_library),
-                                      title: const Text('Pick from Gallery'),
-                                      onTap: () {
-                                        Navigator.of(context).pop();
-                                        _pickImage(ImageSource.gallery);
-                                      },
-                                    ),
-                                    ListTile(
-                                      leading: const Icon(Icons.camera_alt),
-                                      title: const Text('Take a Photo'),
-                                      onTap: () {
-                                        Navigator.of(context).pop();
-                                        _pickImage(ImageSource.camera);
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          );
+                          Navigator.pop(context);
+                          _pickImage(ImageSource.gallery);
                         },
-                        child: Container(
-                          width: 120,
-                          height: 120,
-                          margin: const EdgeInsets.only(bottom: 20),
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Color(0xFF808080),
-                          ),
-                          child: Center(
-                            child: image != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(60),
-                                    child: Image.file(
-                                      image!,
-                                      width: 120,
-                                      height: 120,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.camera_alt_outlined,
-                                    size: 40,
-                                    color: Colors.white,
-                                  ),
-                          ),
-                        ),
                       ),
-                    ),
-                  ],
+                      ListTile(
+                        leading: const Icon(Icons.camera_alt),
+                        title: const Text('Camera'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _pickImage(ImageSource.camera);
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundColor: Colors.grey,
+                  backgroundImage: image != null ? FileImage(image!) : null,
+                  child: image == null
+                      ? const Icon(Icons.camera_alt,
+                          size: 40, color: Colors.white)
+                      : null,
                 ),
               ),
-              const SizedBox(
-                height: 20,
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 23),
-                child: Column(
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Full Name',
-                        labelStyle: TextStyle(
-                          color: Colors.black,
-                        ),
-                        hintText: 'Enter your full name',
-                        prefixIcon: Icon(
-                          Icons.person,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16.0),
-                    TextField(
-                      controller: busNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Bus Name',
-                        labelStyle: TextStyle(
-                          color: Colors.black,
-                        ),
-                        hintText: 'Enter Your Bus Name',
-                        prefixIcon: Icon(
-                          Icons.airport_shuttle,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16.0),
-                    TextField(
-                      controller: routeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Bus Route',
-                        labelStyle: TextStyle(
-                          color: Colors.black,
-                        ),
-                        hintText: 'Enter the bus route',
-                        prefixIcon: Icon(
-                          Icons.route,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16.0),
-                    TextField(
-                      controller: busnoController,
-                      decoration: const InputDecoration(
-                        labelText: 'Bus No',
-                        labelStyle: TextStyle(
-                          color: Colors.black,
-                        ),
-                        hintText: 'Enter your bus number',
-                        prefixIcon: Icon(
-                          Icons.airport_shuttle_outlined,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16.0),
-                    TextField(
-                      controller: phoneNoController,
-                      keyboardType: TextInputType.number,
-                      maxLength: 10,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone No',
-                        labelStyle: TextStyle(
-                          color: Colors.black,
-                        ),
-                        hintText: 'Enter your phone number',
-                        prefixIcon: Icon(
-                          Icons.phone_android_outlined,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10.0),
-                    TextField(
-                      controller: emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        labelStyle: TextStyle(
-                          color: Colors.black,
-                        ),
-                        hintText: 'Enter your email',
-                        prefixIcon: Icon(
-                          Icons.email_outlined,
-                          color: Colors.black,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 40,
-                    ),
-                    SizedBox(
-                      height: 50,
-                      width: 150,
-                      child: ButtonWidget(
-                        title: "Submit",
-                        onPress: () async {
-                          final phoneNumber = phoneNoController.text;
-                          final email = emailController.text;
-                          if (_validatePhoneNumber(phoneNumber) &&
-                              _validateEmail(email)) {
-                            await _saveUserProfile();
-
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) =>
-                                      const TwoFactorAuthScreen()),
-                            );
-                          } else {
-                            showSnackBar('Invalid phone number or email');
-                          }
-                        },
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 20),
+              _buildTextField(
+                  controller: nameController,
+                  label: 'Full Name',
+                  icon: Icons.person),
+              _buildTextField(
+                  controller: busNameController,
+                  label: 'Bus Name',
+                  icon: Icons.directions_bus),
+              _buildTextField(
+                  controller: routeController,
+                  label: 'Bus Route',
+                  icon: Icons.route),
+              _buildTextField(
+                  controller: busnoController,
+                  label: 'Bus No',
+                  icon: Icons.confirmation_number),
+              _buildTextField(
+                  controller: phoneNoController,
+                  label: 'Phone No',
+                  icon: Icons.phone,
+                  isNumber: true),
+              _buildTextField(
+                  controller: emailController,
+                  label: 'Email',
+                  icon: Icons.email,
+                  isEmail: true),
+              const SizedBox(height: 30),
+              SizedBox(
+                height: 50,
+                width: double.infinity,
+                child: ButtonWidget(
+                  title: isLoading ? 'Saving...' : 'Submit',
+                  onPress: isLoading ? null : _saveUserProfile,
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isNumber = false,
+    bool isEmail = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextField(
+        controller: controller,
+        keyboardType: isNumber
+            ? TextInputType.number
+            : isEmail
+                ? TextInputType.emailAddress
+                : TextInputType.text,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon),
+          border: const OutlineInputBorder(),
         ),
       ),
     );

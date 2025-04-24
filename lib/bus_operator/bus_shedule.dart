@@ -1,12 +1,12 @@
-import 'package:track_bus/bus_operator/ratings.dart';
-import 'package:track_bus/widget/crad_todo_widget.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:track_bus/common/show_model.dart';
-import 'bostarttrip.dart';
+import 'package:track_bus/bus_operator/ratings.dart';
+import 'package:track_bus/widget/crad_todo_widget.dart';
 import 'package:track_bus/bus_operator/navigation/bottom_navigation.dart';
-import 'viewBOprofile.dart';
+import 'package:track_bus/bus_operator/bostarttrip.dart';
+import 'package:track_bus/bus_operator/viewBOprofile.dart';
 
 class BusScheduleScreen extends StatefulWidget {
   const BusScheduleScreen({Key? key}) : super(key: key);
@@ -23,57 +23,49 @@ class _BusScheduleScreenState extends State<BusScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade200,
-      appBar: AppBar(
-        backgroundColor: Color.fromARGB(255, 0, 0, 0),
-        elevation: 0,
-        toolbarHeight: 50,
-        title: const Text(
-          'Bus Schedule',
-          style: TextStyle(fontSize: 24),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                IconButton(
-                  onPressed: () {
-                    _showDatePicker(context);
-                  },
-                  icon: const Icon(CupertinoIcons.calendar),
-                ),
-              ],
+    final width = MediaQuery.of(context).size.width;
+
+    return SafeArea(
+      child: Scaffold(
+        backgroundColor: Colors.grey.shade200,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          elevation: 0,
+          toolbarHeight: 50,
+          iconTheme: const IconThemeData(color: Colors.white),
+          title: const Text('Bus Schedule',
+              style: TextStyle(
+                fontSize: 24,
+                color: Colors.white,
+              )),
+          actions: [
+            IconButton(
+              onPressed: () => _showDatePicker(context),
+              icon: const Icon(
+                CupertinoIcons.calendar,
+                color: Colors.white,
+              ),
             ),
-          ),
-        ],
-      ),
-      body: ListView(
-        shrinkWrap: true,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
+            const SizedBox(width: 10),
+          ],
+        ),
+        body: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Upcoming Schedule",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
+                    const Text(
+                      "Upcoming Schedule",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -88,60 +80,63 @@ class _BusScheduleScreenState extends State<BusScheduleScreen> {
                         showModalBottomSheet(
                           context: context,
                           isScrollControlled: true,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.vertical(top: Radius.circular(12)),
                           ),
-                          builder: (context) => AddNewTaskModel(
-                            onSave: (editedFrom, editedTo, editedDeptTime,
-                                editedArrTime, editedDate) {},
-                            documentId: '',
+                          builder: (context) => Padding(
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(context).viewInsets.bottom,
+                            ),
+                            child: AddNewTaskModel(
+                              onSave: (editedFrom, editedTo, editedDeptTime,
+                                  editedArrTime, editedDate) {},
+                              documentId: '',
+                            ),
                           ),
                         );
                       },
-                      child: const Text(
-                        '+ Add Schedule',
-                        style: TextStyle(
-                            color: Color.fromARGB(255, 255, 255, 255)),
-                      ),
+                      child: const Text('+ Add Schedule'),
                     ),
                   ],
                 ),
                 const SizedBox(height: 20),
                 StreamBuilder<QuerySnapshot>(
                   stream: _busSchedule.snapshots(),
-                  builder: (BuildContext context,
-                      AsyncSnapshot<QuerySnapshot> snapshot) {
+                  builder: (context, snapshot) {
                     if (snapshot.hasError) {
-                      return Text('Error: ${snapshot.error}');
+                      return Center(child: Text('Error: ${snapshot.error}'));
                     }
 
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const CircularProgressIndicator();
+                      return const Center(child: CircularProgressIndicator());
                     }
 
-                    final List<QueryDocumentSnapshot> documents =
-                        snapshot.data!.docs;
+                    final documents = snapshot.data!.docs;
+
+                    if (documents.isEmpty) {
+                      return const Center(
+                        child: Text("No schedules available."),
+                      );
+                    }
 
                     return ListView.builder(
-                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: documents.length,
                       shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
                       itemBuilder: (context, index) {
-                        final Map<String, dynamic>? data =
+                        final data =
                             documents[index].data() as Map<String, dynamic>?;
 
-                        final String toWhere = data?['toWhere'] ?? '';
-                        final String date = data?['date'] ?? '';
-                        final String deptTimeTask = data?['deptTimeTask'] ?? '';
-                        final String arrTimeTask = data?['arrTimeTask'] ?? '';
+                        if (data == null) return const SizedBox.shrink();
 
                         return CardTodoListWidget(
                           documentId: documents[index].id,
-                          fromWhere: data?['fromWhere'] ?? '',
-                          toWhere: toWhere,
-                          date: date,
-                          deptTimeTask: deptTimeTask,
-                          arrTimeTask: arrTimeTask,
+                          fromWhere: data['fromWhere'] ?? '',
+                          toWhere: data['toWhere'] ?? '',
+                          date: data['date'] ?? '',
+                          deptTimeTask: data['deptTimeTask'] ?? '',
+                          arrTimeTask: data['arrTimeTask'] ?? '',
                         );
                       },
                     );
@@ -150,66 +145,53 @@ class _BusScheduleScreenState extends State<BusScheduleScreen> {
               ],
             ),
           ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigation(
-        currentIndex: _currentIndex,
-        onTabTapped: (index) {
-          setState(() {
-            _currentIndex = index;
-            if (index == 0) {
-              // Navigate to home
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const BOStartTrip(),
-                ),
-              );
-            } else if (index == 1) {
-              // Navigate to schedule
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const BusScheduleScreen(),
-                ),
-              );
-            } else if (index == 2) {
-              // Navigate to star
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const RatingScreen(),
-                ),
-              );
-            } else if (index == 3) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const ProfileTypeScreen(),
-                ),
-              );
+        ),
+        bottomNavigationBar: BottomNavigation(
+          currentIndex: _currentIndex,
+          onTabTapped: (index) {
+            if (index == _currentIndex) return;
+            setState(() => _currentIndex = index);
+
+            Widget targetScreen;
+            switch (index) {
+              case 0:
+                targetScreen = const BOStartTrip();
+                break;
+              case 1:
+                targetScreen = const BusScheduleScreen();
+                break;
+              case 2:
+                targetScreen = const RatingScreen();
+                break;
+              case 3:
+                targetScreen = const ProfileTypeScreen();
+                break;
+              default:
+                return;
             }
-          });
-        },
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => targetScreen),
+            );
+          },
+        ),
       ),
     );
   }
 
   Future<void> _showDatePicker(BuildContext context) async {
-    final DateTime currentDate = DateTime.now();
-
-    final DateTime? selectedDate = await showDatePicker(
+    final currentDate = DateTime.now();
+    final selectedDate = await showDatePicker(
       context: context,
       initialDate: currentDate,
-      firstDate:
-          currentDate.subtract(const Duration(days: 365)), // One year ago
-      lastDate:
-          currentDate.add(const Duration(days: 365)), // One year in the future
+      firstDate: currentDate.subtract(const Duration(days: 365)),
+      lastDate: currentDate.add(const Duration(days: 365)),
     );
 
-    if (selectedDate != null && selectedDate != currentDate) {
-      // Handle the selected date
-      // You can update the UI or perform any actions here
+    if (selectedDate != null) {
+      // You can handle selectedDate here.
+      // For now it's not doing anything.
     }
   }
 }

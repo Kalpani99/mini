@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:track_bus/phone.dart';
 import 'package:track_bus/widget/button_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,6 +23,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   File? imageX; // Holds the selected image
   bool isLoading = false;
 
+  // Pick image from gallery or camera
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final pickedImage = await picker.pickImage(source: source);
@@ -35,23 +35,20 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  // Upload image to Firebase Storage and return the download URL
   Future<String?> _uploadImage(File imageX) async {
     try {
-      // Generate a unique filename for each uploaded image
       final uniqueFileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
-      // Upload the image to Firebase Storage
       final storageRef = FirebaseStorage.instance
           .ref()
           .child('user_profile_images')
           .child(uniqueFileName);
       final uploadTask = storageRef.putFile(imageX);
 
-      // Get the download URL
       final snapshot = await uploadTask;
       final downloadURL = await snapshot.ref.getDownloadURL();
 
       print('Image uploaded successfully. Download URL: $downloadURL');
-
       return downloadURL;
     } catch (e) {
       print('Error uploading image: $e');
@@ -59,19 +56,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
   }
 
+  // Save user profile to Firestore
   Future<void> _saveUserProfile() async {
     final name = nameController.text;
     final homeAddress = homeController.text;
     final phoneNumber = phoneNoController.text;
     final email = emailController.text;
 
+    print("DEBUG: Submit pressed with values:");
+    print(
+        "Name: $name, Address: $homeAddress, Phone: $phoneNumber, Email: $email");
+    print("Image selected: ${imageX != null}");
+
     if (!_validatePhoneNumber(phoneNumber)) {
       showSnackBar('Invalid phone number');
       return;
     }
 
-    if (!_validateEmail(email)) {
-      showSnackBar('Invalid email address');
+    if (email.isEmpty) {
+      showSnackBar('Email cannot be empty');
       return;
     }
 
@@ -80,38 +83,48 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     });
 
     try {
-      // Upload the image
       String? downloadURL;
       if (imageX != null) {
+        print("DEBUG: Uploading image...");
         downloadURL = await _uploadImage(imageX!);
+        print("DEBUG: Image uploaded. URL: $downloadURL");
       }
 
       final FirebaseAuth auth = FirebaseAuth.instance;
+      final user = auth.currentUser;
+      print("DEBUG: Current user ID: ${user?.uid}");
 
-      // Add the user profile data to Firestore
-      final userProfileData = {
-        'name': name,
-        'homeAddress': homeAddress,
-        'phoneNumber': phoneNumber,
-        'email': email,
-        'profileImageURL': downloadURL,
-      };
-      await FirebaseFirestore.instance
-          .collection('userProfiles')
-          .doc(auth.currentUser!.uid)
-          .set(userProfileData);
+      if (user != null) {
+        final userProfileData = {
+          'name': name,
+          'homeAddress': homeAddress,
+          'phoneNumber': phoneNumber,
+          'email': email,
+          'profileImageURL': downloadURL ?? '',
+        };
 
-      setState(() {
-        nameController.clear();
-        homeController.clear();
-        phoneNoController.clear();
-        emailController.clear();
-        imageX = null;
-        isLoading = false;
-      });
+        print("DEBUG: Saving data to Firestore...");
+        await FirebaseFirestore.instance
+            .collection('userProfiles')
+            .doc(user.uid)
+            .set(userProfileData, SetOptions(merge: true));
+        print("DEBUG: Profile saved successfully.");
+
+        // Navigate to 2FA screen
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const TwoFactorAuthScreen(),
+          ),
+        );
+      } else {
+        print("DEBUG: No user is logged in.");
+        showSnackBar('User not authenticated');
+      }
     } catch (e) {
-      print('Error saving user profile: $e');
-
+      print('DEBUG: Error saving user profile: $e');
+      showSnackBar('Failed to save profile');
+    } finally {
       setState(() {
         isLoading = false;
       });
@@ -124,13 +137,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     return phoneRegex.hasMatch(value);
   }
 
-  bool _validateEmail(String value) {
-    if (value.isEmpty) return false;
-    final emailRegex = RegExp(
-        r'^[\w-]+(\.[\w-]+)*@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*(\.[a-zA-Z]{2,})$');
-    return emailRegex.hasMatch(value);
-  }
-
+  // Show a SnackBar with a message
   void showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -143,15 +150,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          title: const Text(
-            'Create Passenger Profile',
-            style: TextStyle(color: Colors.white),
-          ),
-          backgroundColor: Colors.black,
-          centerTitle: true,
-          iconTheme: const IconThemeData(
-            color: Colors.white,
-          )),
+        title: const Text(
+          'Create Passenger Profile',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.black,
+        centerTitle: true,
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ),
+      ),
       body: Container(
         padding: const EdgeInsets.only(top: 30),
         child: SingleChildScrollView(
@@ -305,16 +313,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         onPress: () async {
                           final phoneNumber = phoneNoController.text;
                           final email = emailController.text;
-                          if (_validatePhoneNumber(phoneNumber) &&
-                              _validateEmail(email)) {
+                          if (_validatePhoneNumber(phoneNumber)) {
                             await _saveUserProfile();
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        const TwoFactorAuthScreen()));
                           } else {
-                            showSnackBar('Invalid phone number or email');
+                            showSnackBar('Invalid phone number');
                           }
                         },
                       ),

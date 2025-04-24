@@ -9,7 +9,7 @@ import 'package:track_bus/login.dart';
 import 'package:track_bus/services/firebase_services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../bus_operator/navigation/bottom_navigation.dart';
+import 'package:track_bus/bus_operator/navigation/bottom_navigation.dart';
 
 class ProfileTypeScreenP extends StatefulWidget {
   const ProfileTypeScreenP({super.key});
@@ -34,8 +34,8 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
 
   @override
   void initState() {
-    futuredata = AuthService().getUserProfile();
     super.initState();
+    futuredata = AuthService().getUserProfile();
   }
 
   @override
@@ -46,7 +46,8 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
         title: const Text("Profile"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout,
+                color: Color.fromARGB(255, 255, 255, 255)),
             onPressed: () async {
               await FirebaseServices().signOutUser();
               FirebaseAuth.instance.signOut().then((value) {
@@ -70,7 +71,6 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
             } else if (snapshot.hasError) {
               return Text('Error: ${snapshot.error}');
             } else if (!snapshot.hasData || snapshot.data == null) {
-              // Handle the case where snapshot.data is null or not available
               return const Text('No data available');
             } else {
               final data = snapshot.data as UserDetailsP;
@@ -93,7 +93,8 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
                             //showImageDialog
                           },
                           child: CircleAvatar(
-                            backgroundColor: Colors.black,
+                            backgroundColor:
+                                const Color.fromARGB(255, 255, 0, 0),
                             minRadius: 70.0,
                             child: CircleAvatar(
                               radius: 67.0,
@@ -123,7 +124,7 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
                           height: 40,
                         ),
                         Container(
-                          padding: const EdgeInsets.all(10.0),
+                          padding: const EdgeInsets.all(5.0),
                           decoration: BoxDecoration(
                               border: Border.all(
                             color: Colors.black,
@@ -154,7 +155,7 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
                         ),
                         const Divider(),
                         Container(
-                          padding: const EdgeInsets.all(10.0),
+                          padding: const EdgeInsets.all(5.0),
                           decoration: BoxDecoration(
                               border: Border.all(
                             color: Colors.black,
@@ -185,7 +186,7 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
                         ),
                         const Divider(),
                         Container(
-                          padding: const EdgeInsets.all(10.0),
+                          padding: const EdgeInsets.all(5.0),
                           decoration: BoxDecoration(
                               border: Border.all(
                             color: Colors.black,
@@ -216,7 +217,7 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
                         ),
                         const Divider(),
                         Container(
-                          padding: const EdgeInsets.all(10.0),
+                          padding: const EdgeInsets.all(5.0),
                           decoration: BoxDecoration(
                               border: Border.all(
                             color: Colors.black,
@@ -254,10 +255,12 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
                             child: ElevatedButton(
                               onPressed: () {
                                 Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) =>
-                                            const PassengerProfileEditScreen()));
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const PassengerProfileEditScreen(),
+                                  ),
+                                );
                               },
                               style: ElevatedButton.styleFrom(
                                 foregroundColor: Colors.white,
@@ -269,7 +272,7 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
                               child: const Padding(
                                 padding: EdgeInsets.all(12.0),
                                 child: Text(
-                                  "Edit",
+                                  "Edit Profile",
                                   style: TextStyle(fontSize: 18),
                                 ),
                               ),
@@ -290,7 +293,6 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
           setState(() {
             _currentIndex = index;
             if (index == 0) {
-              // Navigate to home
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -298,7 +300,6 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
                 ),
               );
             } else if (index == 1) {
-              // Navigate to schedule
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -306,7 +307,6 @@ class _ProfileTypeScreenPState extends State<ProfileTypeScreenP> {
                 ),
               );
             } else if (index == 2) {
-              // Navigate to star
               Navigator.push(
                 context,
                 MaterialPageRoute(
